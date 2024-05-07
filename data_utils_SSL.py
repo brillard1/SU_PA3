@@ -103,7 +103,75 @@ class Dataset_ASVspoof2021_eval(Dataset):
             x_inp = Tensor(X_pad)
             return x_inp,utt_id  
 
+#--------------For custom dataset---------------------------##
 
+def genCustom_list( dir_meta,is_train=False,is_eval=False):
+    
+    d_meta = {}
+    file_list=[]
+    
+    for root, dirs, files in os.walk(dir_meta):
+        for file in files:
+            if file.endswith(('.mp3', '.wav')):
+                path = os.path.join(root, file)
+                label = os.path.basename(root).lower()
+                label = 1 if label == 'fake' else 0
+                file_list.append(path)
+                d_meta.append(label)
+
+    if (is_train):
+        return d_meta,file_list
+
+    elif(is_eval):
+        return file_list
+			
+
+class Dataset_Custom_train(Dataset):
+	def __init__(self,args,list_IDs, labels, base_dir,algo):
+            '''self.list_IDs	: list of strings (each string: utt key),
+               self.labels      : dictionary (key: utt key, value: label integer)'''
+               
+            self.list_IDs = list_IDs
+            self.labels = labels
+            self.base_dir = base_dir
+            self.algo=algo
+            self.args=args
+            self.cut=64600 # take ~4 sec audio (64600 samples)
+
+	def __len__(self):
+           return len(self.list_IDs)
+
+	def __getitem__(self, index):
+
+            utt_id = self.list_IDs[index]
+            X,fs = librosa.load(f"{self.base_dir}/{utt_id}", sr=16000) 
+            Y=process_Rawboost_feature(X,fs,self.args,self.algo)
+            X_pad= pad(Y,self.cut)
+            x_inp= Tensor(X_pad)
+            target = self.labels[utt_id]
+
+            return x_inp, target
+            
+            
+class Dataset_Custom_eval(Dataset):
+	def __init__(self, list_IDs, base_dir):
+            '''self.list_IDs	: list of strings (each string: utt key),
+               '''
+               
+            self.list_IDs = list_IDs
+            self.base_dir = base_dir
+            self.cut=64600 # take ~4 sec audio (64600 samples)
+
+	def __len__(self):
+            return len(self.list_IDs)
+
+	def __getitem__(self, index):
+            
+            utt_id = self.list_IDs[index]
+            X, fs = librosa.load(f"{self.base_dir}/{utt_id}", sr=16000)
+            X_pad = pad(X,self.cut)
+            x_inp = Tensor(X_pad)
+            return x_inp,utt_id  
 
 
 #--------------RawBoost data augmentation algorithms---------------------------##
