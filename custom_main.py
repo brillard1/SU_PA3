@@ -146,6 +146,8 @@ if __name__ == '__main__':
     parser.add_argument('--track', type=str, default='LA',choices=['LA', 'PA','DF'], help='LA/PA/DF')
     parser.add_argument('--eval_output', type=str, default=None,
                         help='Path to save the evaluation result')
+    parser.add_argument('--custom', action='store_true', default=False,
+                        help='dataset mode')
     parser.add_argument('--eval', action='store_true', default=False,
                         help='eval mode')
     parser.add_argument('--is_eval', action='store_true', default=False,help='eval database')
@@ -253,15 +255,18 @@ if __name__ == '__main__':
 
     #evaluation 
     if args.eval:
-        file_eval = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.eval.trl.txt'.format(prefix,prefix_2021)),is_train=False,is_eval=True)
+        # for-2seconds and custom
+        for_path = '../for-2seconds/testing'
+        custom_path = '../Dataset_Speech_Assignment'
+        path = for_path
+        if args.custom:
+            path = custom_path
+        file_eval = genCustom_list( dir_meta = path,is_train=False,is_eval=True)
         print('no. of eval trials',len(file_eval))
-        eval_set=Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2021_{}_eval/'.format(args.track)))
+        eval_set=Dataset_Custom_eval(list_IDs = file_eval,base_dir = path)
         produce_evaluation_file(eval_set, model, device, args.eval_output)
         sys.exit(0)
-   
-    
 
-     
     # define train dataloader
     # d_label_trn,file_train = genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'{}_cm_protocols/{}.cm.train.trn.txt'.format(prefix,prefix_2019)),is_train=True,is_eval=False)
     d_label_trn, file_train = genCustom_list( dir_meta='../for-2seconds/training', is_train=True, is_eval=False)
@@ -271,9 +276,8 @@ if __name__ == '__main__':
     train_set=Dataset_Custom_train(args,list_IDs = file_train,labels = d_label_trn, base_dir = '../for-2seconds/training',algo=args.algo)
     
     train_loader = DataLoader(train_set, batch_size=args.batch_size,num_workers=8, shuffle=True,drop_last = True)
-    
+
     del train_set,d_label_trn
-    
 
     # define validation dataloader
 
